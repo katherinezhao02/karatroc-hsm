@@ -5,5 +5,6 @@
 #:driver "../spec/driver.rkt"
 #:R R
 #:verbose #t
+#:without-crashes #t
 
 (require "shared.rkt")
