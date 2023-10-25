@@ -25,14 +25,16 @@
 
 (define ((multiply x) s)
   (define prod (bvmul
-              (sign-extend x (bitvector 64))
-              (sign-extend (state-total s) (bitvector 64))))
+              (zero-extend x (bitvector 64))
+              (zero-extend (state-total s) (bitvector 64))))
   (define prod-ovf (extract 63 32 prod))
+  ; (println prod)
+  ; (println prod-ovf)
   (define ovf ;we have overflow if we already have overflow or we newly overflowed
     (if 
       (or 
         (equal? (state-overflow s) (bv 1 1)) 
-        (bvsgt prod-ovf (bv 0 32))
+        (bvugt prod-ovf (bv 0 32))
       )
       (bv 1 1)
       (bv 0 1)
@@ -68,6 +70,13 @@
 
     (define s4 (result-state ((multiply (bv 0 WIDTH)) s3)))
     (check-equal? (state-overflow s4) (bv 1 1))
+
+  )
+
+  (test-case "multiply2"
+    (define s1 (state (bv #xe00150be WIDTH) (bv 0 1)))
+    (define s2 (result-state ((multiply (bv #x95fd3f7f WIDTH)) s1)))
+    (check-equal? (state-overflow s2) (bv 1 1))
 
   )
 )
