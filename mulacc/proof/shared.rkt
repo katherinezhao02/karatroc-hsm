@@ -12,10 +12,12 @@
   		(get-field f 'overflow) 
   		(get-field circuit 'ovf) 
 	)
-	(if 
-		(equal? (get-field f 'overflow) (bv 0 1))
-		(equal? (get-field f 'total) (get-field circuit 'acc))
-		#t
-	)
+	(equal? (get-field f 'total) (get-field circuit 'acc))
+	; (if 
+	; 	(equal? (get-field f 'overflow) (bv 0 1))
+	; 	(equal? (get-field f 'total) (get-field circuit 'acc))
+	; 	#t
+	; )
+	(equal? (get-field circuit 'state) (bv 0 1))
   )
 )

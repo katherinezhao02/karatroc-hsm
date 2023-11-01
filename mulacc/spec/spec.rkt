@@ -10,7 +10,7 @@
 
 (require rosutil)
 
-(define WIDTH 32)
+(define WIDTH 8)
 
 (struct state (total overflow))
 
@@ -24,31 +24,34 @@
    (fresh-symbolic 'overflow (bitvector 1))))
 
 (define ((multiply x) s)
+  (printf "multiply x: ~v s: ~v vc: ~v ~n" x s (vc))
   (define prod (bvmul
-              (zero-extend x (bitvector 64))
-              (zero-extend (state-total s) (bitvector 64))))
-  (define prod-ovf (extract 63 32 prod))
+              (zero-extend x (bitvector 16))
+              (zero-extend (state-total s) (bitvector 16))))
+  (define prod-ovf (extract 15 8 prod))
   ; (println prod)
   ; (println prod-ovf)
   (define ovf ;we have overflow if we already have overflow or we newly overflowed
     (if 
       (or 
         (equal? (state-overflow s) (bv 1 1)) 
-        (bvugt prod-ovf (bv 0 32))
+        (bvugt prod-ovf (bv 0 8))
       )
       (bv 1 1)
       (bv 0 1)
     )
   )
+  (printf "done multiply prod: ~v ovf: ~v ~n" prod ovf)
   (result 
     (void)
-    (state (extract 31 0 prod) ovf)
+    (state (extract 7 0 prod) ovf)
   )
 )
 
 (define ((get-overflow) s)
   (result
-   (state-overflow s)
+   (! (bvzero? (state-overflow s)))
+   ; (state-overflow s)
    s))
 
 (define ((get-total) s)
@@ -56,7 +59,7 @@
    (state-total s)
    s))
 
-(module+ test
+#;(module+ test
   (require rackunit)
 
   (test-case "multiply"

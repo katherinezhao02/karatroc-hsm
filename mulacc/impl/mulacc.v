@@ -1,5 +1,5 @@
 module mulacc #(
-    parameter WIDTH = 32
+    parameter WIDTH = 8
 ) (
     input clk,
     input reset,
@@ -11,20 +11,28 @@ module mulacc #(
 
 reg [WIDTH-1:0] acc;
 reg [WIDTH-1:0] extra;
+reg [WIDTH-1:0] tmp_acc;
+reg state;
 reg ovf;
 
 always @(posedge clk) begin
 
     if (reset) begin
-        acc = 1;
-        extra = 0;
-        ovf=0;
+        extra <= 0;
+        out<=1;
+        state<=0;
     end
-    if (en) begin
-        {extra, acc} = acc*x;
-        ovf = (ovf > 0) ? 1: ((extra >32'b0) ? 1 : 0);
+    else if (en) begin
+        if (state ==0) begin
+            {extra, tmp_acc} <= acc*x;
+            state <=1;
+        end else begin
+            ovf <= (ovf > 0) ? 1: ((extra >0) ? 1 : 0);
+            acc <= tmp_acc;
+            state<=0;
+        end
     end
-    out =acc;
+    out <=acc;
     
 end
 assign overflow = ovf;
