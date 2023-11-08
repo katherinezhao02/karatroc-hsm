@@ -13,6 +13,7 @@
   		(get-field circuit 'ovf) 
 	)
 	(equal? (get-field f 'total) (get-field circuit 'acc))
+	(equal? (get-field circuit 'acc) (get-field circuit 'out))
 	; (if 
 	; 	(equal? (get-field f 'overflow) (bv 0 1))
 	; 	(equal? (get-field f 'total) (get-field circuit 'acc))

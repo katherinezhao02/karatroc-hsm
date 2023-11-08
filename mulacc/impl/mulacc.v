@@ -19,8 +19,8 @@ always @(posedge clk) begin
 
     if (reset) begin
         extra <= 0;
-        out<=1;
         state<=0;
+        out <= acc;
     end
     else if (en) begin
         if (state ==0) begin
@@ -30,9 +30,9 @@ always @(posedge clk) begin
             ovf <= (ovf > 0) ? 1: ((extra >0) ? 1 : 0);
             acc <= tmp_acc;
             state<=0;
+            out <=tmp_acc;
         end
     end
-    out <=acc;
     
 end
 assign overflow = ovf;
