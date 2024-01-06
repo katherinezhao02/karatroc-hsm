@@ -1,5 +1,5 @@
 module rng#(
-    parameter WIDTH = 1
+    parameter WIDTH = 4
 )(
 	input clk,
     input reset,
@@ -26,7 +26,7 @@ always @(posedge clk) begin
     end
     else if (en) begin
     	if (cur_bit_ind <= WIDTH-1) begin
-	    	cur_word<=trng_bit;
+	    	cur_word<=(cur_word<<1)+trng_bit;
 	    	cur_bit_ind<=cur_bit_ind+1;
     	end
 	    if (req && cur_bit_ind>=WIDTH-1) begin
