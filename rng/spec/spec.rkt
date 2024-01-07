@@ -5,6 +5,7 @@
 #:methods
 (get-random)
 #:leak #f
+#:random #t
 
 ;; stateless
 (define (new-symbolic-state)

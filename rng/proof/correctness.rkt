@@ -5,7 +5,6 @@
 #:driver "../spec/driver.rkt"
 #:R R
 #:verbose #t
-#:random #t
 #:max-trng-bits 5
 
 (require "shared.rkt")
