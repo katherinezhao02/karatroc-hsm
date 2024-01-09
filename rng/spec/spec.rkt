@@ -6,6 +6,7 @@
 (get-random)
 #:leak #f
 #:random #t
+#:max-trng-bits 5
 
 ;; stateless
 (define (new-symbolic-state)
