@@ -23,12 +23,6 @@
 
 (define ((get-random) s)
   (define t (cdr s))
-  ; (result (car t) 
-  ;   (cons (car s) (cdr t)))
-  ; (result (concat (car (cdr t)) (car t)) 
-  ;   (cons (car s) (cdr (cdr t))))
-
-  ; (result (concat (car (cdr (cdr (cdr t)))) (car (cdr (cdr t))) (car (cdr t)) (car t)) 
-  ;   (cons (car s) (cdr (cdr (cdr (cdr t))))))
   (result (make-word t 4) (cons (car s) (cdr (cdr (cdr (cdr t))))))
+  ; (result (make-word t 2) (cons (car s) (cdr (cdr t))))
   )

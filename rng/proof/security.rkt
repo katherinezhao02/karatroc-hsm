@@ -7,11 +7,21 @@
 
 (require "shared.rkt" rosette/safe rosutil)
 
-(printf "circuit ~v ~n" (lens-view (lens 'term 'circuit) (current)))
-(printf "~n pred ~v ~n" (lens-view (lens 'predicate) (current)))
-(printf "emulator auxiliary ~v ~n" (lens-view (lens 'term 'emulator 'auxiliary) (current)))
-(printf "emulator oracle ~v ~n" (lens-view (lens 'term 'emulator 'oracle) (current)))
+(require "shared.rkt"
+         rosutil
+         rosette/safe)
 
+; (printf "circuit ~v ~n" (lens-view (lens 'term 'circuit) (current)))
+; (printf "emulator auxiliary ~v ~n" (lens-view (lens 'term 'emulator 'auxiliary) (current)))
+
+(replace! (lens 'circuit 'cur_bit_ind) (bv 0 6))
+(replace! (lens 'circuit 'want_next) (bv 1 1))
+(replace! (lens 'circuit 'valid) (bv 0 1))
+(replace! (lens 'circuit 'cur_word) (bv 0 4))
+(replace! (lens 'circuit 'reset_ind) (bv 0 1))
+
+; (printf "~n circuit 1 ~v ~n" (lens-view (lens 'term 'circuit) (current)))
+; (printf "emulator auxiliary1 ~v ~n" (lens-view (lens 'term 'emulator 'auxiliary) (current)))
 
 (define (step-en!)
   (define prev-index (length (visited)))
@@ -21,54 +31,36 @@
   (cases! (list (! en) en))
   ;; when not en, nothing has changed
   (subsumed! prev-index)
+  (concretize! (lens 'circuit 'cur_bit_ind))
+  (concretize! (lens 'emulator 'auxiliary 'cur_bit_ind))
+  (concretize! (lens 'circuit 'valid))
+  (concretize! (lens 'emulator 'auxiliary 'valid))
   )
 
-(replace! (lens 'emulator 'auxiliary 'acc) (lens-view (lens 'term 'circuit 'acc) (current)))
-(replace! (lens 'emulator 'auxiliary 'out) (lens-view (lens 'term 'circuit 'acc) (current)))
-(replace! (lens 'emulator 'auxiliary 'ovf) (lens-view (lens 'term 'circuit 'ovf) (current)))
-(replace! (lens 'emulator 'oracle 'overflow) (lens-view (lens 'term 'circuit 'ovf) (current)))
-(replace! (lens 'emulator 'oracle 'total) (lens-view (lens 'term 'circuit 'acc) (current)))
-(replace! (lens 'circuit 'out) (lens-view (lens 'term 'circuit 'acc) (current)))
-
-(concretize! (lens 'circuit 'state))
-(overapproximate!
- (lens 'emulator 'auxiliary (list 'extra 'x 'en 'tmp_x)))
-(overapproximate-predicate! #t)
-
-(printf "~n circuit begin ~v ~n" (lens-view (lens 'term 'circuit) (current)))
-(printf "~n pred ~v ~n" (lens-view (lens 'predicate) (current)))
-(printf "emulator auxiliary ~v ~n" (lens-view (lens 'term 'emulator 'auxiliary) (current)))
-(printf "emulator oracle ~v ~n" (lens-view (lens 'term 'emulator 'oracle) (current)))
-
-
-(define overflow (lens-view (lens 'term 'circuit 'ovf) (current)))
-; (cases! (list (equal? overflow (bv 1 1)) (!(equal? overflow (bv 1 1)))))
-; (concretize! (lens 'emulator 'auxiliary 'ovf))
-; (concretize! (lens 'emulator 'oracle 'overflow))
-; (concretize! (lens 'circuit 'ovf))
-(printf "~n circuit after cases ~v ~n" (lens-view (lens 'term 'circuit) (current)))
-(printf "~n pred ~v ~n" (lens-view (lens 'predicate) (current)))
-(printf "emulator auxiliary ~v ~n" (lens-view (lens 'term 'emulator 'auxiliary) (current)))
-(printf "emulator oracle ~v ~n" (lens-view (lens 'term 'emulator 'oracle) (current)))
-
-
 (step-en!)
-(printf "~n circuit after step1 ~v ~n" (lens-view (lens 'term 'circuit) (current)))
-(printf "~n pred ~v ~n" (lens-view (lens 'predicate) (current)))
-(printf "emulator auxiliary ~v ~n" (lens-view (lens 'term 'emulator 'auxiliary) (current)))
-(printf "emulator oracle ~v ~n" (lens-view (lens 'term 'emulator 'oracle) (current)))
-
-(concretize! (lens 'circuit 'state))
-(concretize! (lens 'emulator 'auxiliary 'state))
 
 
+; (printf "~n circuit 2 ~v ~n" (lens-view (lens 'term 'circuit) (current)))
+; (printf "emulator auxiliary2 ~v ~n" (lens-view (lens 'term 'emulator 'auxiliary) (current)))
 (step-en!)
-(concretize! (lens 'circuit 'state))
-(concretize! (lens 'emulator 'auxiliary 'state))
-(printf "~n circuit after step2 ~v ~n" (lens-view (lens 'term 'circuit) (current)))
-(printf "~n pred ~v ~n" (lens-view (lens 'predicate) (current)))
-(printf "emulator auxiliary ~v ~n" (lens-view (lens 'term 'emulator 'auxiliary) (current)))
-(printf "emulator oracle ~v ~n" (lens-view (lens 'term 'emulator 'oracle) (current)))
-(replace! (lens 'emulator 'oracle 'total) (lens-view (lens 'term 'circuit 'acc) (current)))
+(step-en!)
+(step-en!)
+; (printf "~n circuit 3 ~v ~n" (lens-view (lens 'term 'circuit) (current)))
+; (printf "emulator auxiliary3 ~v ~n" (lens-view (lens 'term 'emulator 'auxiliary) (current)))
+(define req (lens-view (lens 'term 'circuit 'req) (current)))
+(step-en!)
+(cases! (list req (! req)))
+
+;; if we request we reset the circuit
+; (printf "~n circuit 4 ~v ~n" (lens-view (lens 'term 'circuit) (current)))
+; (printf "emulator auxiliary4 ~v ~n" (lens-view (lens 'term 'emulator 'auxiliary) (current)))
+(subsumed! 0)
+
+;; if we don't request we hold onto the word
+(define req2 (lens-view (lens 'term 'circuit 'req) (current)))
+(define req-index (length (visited)))
+(step-en!)
+(cases! (list req2 (! req2)))
 
 (subsumed! 0)
+(subsumed! req-index)
