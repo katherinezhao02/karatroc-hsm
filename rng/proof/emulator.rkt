@@ -3,7 +3,7 @@
 (define (init)
   (let ([c (update-fields (circuit-new)
                     (list
-                     (cons 'want_next (bv 1 1))
+                     (cons 'want_next (bv 0 1))
                      ))])
     ; (printf "circuit after updating in init ~v ~n" c)
     (set! c)))
@@ -15,4 +15,5 @@
   (circuit-get-output (get)))
 
 (define (step)
-  (set! (circuit-step (get))))
+  (set! (if (and (equal? (get-field (circuit-step (get)) 'valid) (bv 1 1)) (get-field (circuit-step (get)) 'en))
+    (update-field (circuit-step (get)) 'cur_word (spec:get-random)) (circuit-step (get)))))

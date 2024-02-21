@@ -1,5 +1,5 @@
 module rng#(
-    parameter WIDTH = 4
+    parameter WIDTH = 2
 )(
 	input clk,
     input reset,
@@ -24,8 +24,7 @@ always @(posedge clk) begin
         cur_word<=0;
         cur_bit_ind<=0;
         valid<=0;
-        want_next <=1;
-        // output_word <=0;
+        want_next <=0;
         reset_ind <=0;
     end
     else if (en) begin
@@ -37,13 +36,13 @@ always @(posedge clk) begin
     	if (reset_ind) begin
     		cur_bit_ind<=0;
     		valid <=0;
-    		want_next<=1;
+    		want_next<=0;
     		cur_word<=0;
     		reset_ind<=0;
 	    end else if (req && cur_bit_ind>=WIDTH-1) begin
 	    	valid<=1;
 	    	reset_ind <=1;
-	    	want_next<=0;
+	    	want_next<=1;
 	    end else if (cur_bit_ind>=WIDTH-1) begin
 	    	valid <=0;
 	    	want_next<=0;
@@ -53,7 +52,8 @@ always @(posedge clk) begin
 	    end
     end
 end
-assign trng_next=want_next;
-assign random_word=cur_word;
-assign output_valid = valid;
+assign trng_next=(en) ? want_next:0;
+assign output_valid = (en) ? valid:0;
+assign random_word = (en) ? ((valid) ? cur_word:0): 0;
+
 endmodule

@@ -6,7 +6,7 @@
 (get-random)
 #:leak #f
 #:random #t
-#:max-trng-bits 5
+#:max-trng-bits 10
 
 ;; stateless
 (define (new-symbolic-state)
@@ -22,7 +22,7 @@
 )
 
 (define ((get-random) s)
-  (define t (cdr s))
-  (result (make-word t 4) (cons (car s) (cdr (cdr (cdr (cdr t))))))
-  ; (result (make-word t 2) (cons (car s) (cdr (cdr t))))
+  (define t (rstate-trng s))
+  ; (result (make-word t 4) (cons (car s) (cdr (cdr (cdr (cdr t))))))
+  (result (make-word t 2) (rstate (rstate-spec s) (cdr (cdr t))))
   )
