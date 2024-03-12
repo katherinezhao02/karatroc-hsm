@@ -18,7 +18,7 @@
    (define s (get-state))
    (println (lens-view (lens 'interpreter 'globals 'circuit) s))))
 (define hint-concretize
-  (concretize! (lens 'circuit (field-filter/or "cur_bit_ind" "want_next" "valid" "cur_word" "reset_ind")) #:use-pc #t))
+  (concretize! (lens 'circuit (field-filter/or "cur_bit_ind" "want_next" "is_valid" "cur_word" "reset_ind")) #:use-pc #t))
 
 
 (define (hints method c1 f1 f-out f2)
