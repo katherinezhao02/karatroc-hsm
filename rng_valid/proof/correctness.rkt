@@ -26,4 +26,5 @@
     [`(get-random)
      (make-hintdb
       [debug debug]
-      [concretize hint-concretize])]))
+      [concretize hint-concretize]
+      [fp (fixpoint 0 #t 0 #f #f)])]))

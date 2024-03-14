@@ -14,8 +14,11 @@
   ; (printf "driver: ~v ~n" (in))
   ; (printf "driver2 ~v ~n" (output-trng_req (in)))
   ; (hint debug)
+  (wait-trng fp)
   (tick)
+  (wait-trng fp)
   (tick)
+
   ; (tick)
   ; (tick)
   ; (tick)
