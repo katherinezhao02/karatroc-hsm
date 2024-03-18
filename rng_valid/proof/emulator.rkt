@@ -15,5 +15,5 @@
   (circuit-get-output (get)))
 
 (define (step)
-  (set! (if (and (equal? (get-field (circuit-step (get)) 'valid) (bv 1 1)) (get-field (circuit-step (get)) 'en))
+  (set! (if (and (equal? (get-field (circuit-step (get)) 'is_valid) (bv 1 1)) (get-field (circuit-step (get)) 'en))
     (update-field (circuit-step (get)) 'cur_word (spec:get-random)) (circuit-step (get)))))

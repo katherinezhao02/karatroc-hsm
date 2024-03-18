@@ -16,8 +16,8 @@
 
 (replace! (lens 'circuit 'cur_bit_ind) (bv 0 6))
 (replace! (lens 'circuit 'want_next) (bv 0 1))
-(replace! (lens 'circuit 'valid) (bv 0 1))
-(replace! (lens 'circuit 'cur_word) (bv 0 2))
+(replace! (lens 'circuit 'is_valid) (bv 0 1))
+(replace! (lens 'circuit 'cur_word) (bv 0 8))
 (replace! (lens 'circuit 'reset_ind) (bv 0 1))
 (overapproximate-predicate! #t)
 
@@ -40,11 +40,24 @@
   (subsumed! prev-index)
   )
 
+(define (step-en-valid!)
+  (define prev-index (length (visited)))
+  (step!)
+  ;; case split based on whether en was true
+  (define en (lens-view (lens 'term 'circuit 'en) (current)))
+  (cases! (list (! en) en))
+  ;; when not en, nothing has changed
+  (subsumed! prev-index)
+  (define val (lens-view (lens 'term 'circuit 'trng_valid) (current)))
+  (cases! (list (! val) val))
+  (subsumed! prev-index)
+  )
+
 (define (concr_all)
 	(concretize! (lens 'circuit 'cur_bit_ind))
 	(concretize! (lens 'emulator 'auxiliary 'cur_bit_ind))
-	(concretize! (lens 'circuit 'valid))
-	(concretize! (lens 'emulator 'auxiliary 'valid))
+	(concretize! (lens 'circuit 'is_valid))
+	(concretize! (lens 'emulator 'auxiliary 'is_valid))
 	(concretize! (lens 'circuit 'cur_word))
 	(concretize! (lens 'emulator 'auxiliary 'cur_word))
 	(concretize! (lens 'circuit 'reset_ind))
@@ -58,18 +71,22 @@
 (printf "emulator auxiliary1.1 ~v ~n" (lens-view (lens 'term 'emulator 'auxiliary) (current)))
 (printf "emulator oracle 1.1 ~v ~n" (lens-view (lens 'term 'emulator 'oracle) (current)))
 (printf "circuit trng 1.1 ~v ~n" (lens-view (lens 'circuit-trng-state) (current)))
-(replace-circuit-trng! (cdr init_trng))
-(step-en!)
 
-
+(step-en-valid!)
 (printf "~n circuit 2 ~v ~n" (lens-view (lens 'term 'circuit) (current)))
 (printf "emulator auxiliary2 ~v ~n" (lens-view (lens 'term 'emulator 'auxiliary) (current)))
 (printf "emulator oracle 2 ~v ~n" (lens-view (lens 'term 'emulator 'oracle) (current)))
 (printf "circuit trng 2 ~v ~n" (lens-view (lens 'circuit-trng-state) (current)))
+(replace-circuit-trng! (cdr init_trng))
+(step-en-valid!)
+(replace-circuit-trng! (cdr (cdr init_trng)))
+(step-en!)
+(subsumed! 0)
 ; (step-en!)
 ; (step-en!)
 ; (step-en!)
-
+#|
+(replace-circuit-trng! (cdr init_trng))
 (define req (lens-view (lens 'term 'circuit 'req) (current)))
 (cases! (list req (! req)))
 (concr_all)
@@ -127,3 +144,4 @@
 ; (printf "pred ~v ~n" (lens-view (lens 'predicate) (current)))
 (replace! (lens 'emulator 'oracle 'trng) init_trng)
 (subsumed! req-index)
+|#
