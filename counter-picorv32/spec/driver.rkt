@@ -17,7 +17,6 @@
       (begin
         (tick)
         (hint maybe-concretize-cpu)
-        (hint maybe-split-pc)
         (hint debug)
         (tick-n (sub1 n)))))
 
@@ -36,7 +35,6 @@
       (begin
         (tick)
         (hint maybe-concretize-cpu)
-        (hint maybe-split-pc)
         (hint debug)
         (wait-until-start-bit))
       (void)))
@@ -122,59 +120,23 @@
   (tick-n 220)
   (hint overapproximate-boot)) ; do this after UART has been initialized
 
-(define (prepare cmd slot)
+(define (prepare cmd)
+  (hint concretize-boot)
   (reset)
   (hint overapproximate-uart)
   (yield uart-fp)
-  (send-byte cmd)
-  (hint overapproximate-uart)
-  (yield uart-fp)
-  (hint merge)
-  (hint case-split-slot)
-  (send-byte slot))
+  (send-byte cmd))
 
 (define (wait-and-return value)
   (tick-n 100) ; to give circuit time to power off
   value)
 
-(define (status slot)
-  (let ([invalid-slot (bvuge slot (bv 4 8))])
-    (hint case-split-invalid-slot)
-    (if invalid-slot
-        #f
-        (begin
-          (prepare (bv 1 8) slot)
-          (wait-and-return (bveq (recv-byte) (bv 1 8)))))))
+(define (add x)
+  (prepare (bv 1 8))
+  (send-bytes (reverse (bitvector->bytes x)))
+  (recv-bytes 1)
+  (wait-and-return (void)))
 
-(define (delete slot)
-  (let ([invalid-slot (bvuge slot (bv 4 8))])
-    (hint case-split-invalid-slot)
-    (if invalid-slot
-        #f
-        (begin
-          (prepare (bv 2 8) slot)
-          (wait-and-return (bveq (recv-byte) (bv 1 8)))))))
-
-(define (store slot pin data)
-  (let ([invalid-slot (bvuge slot (bv 4 8))])
-    (hint case-split-invalid-slot)
-    (if invalid-slot
-        #f
-        (begin
-          (prepare (bv 3 8) slot)
-          (send-bytes (bitvector->bytes pin))
-          (send-bytes (bitvector->bytes data))
-          (wait-and-return (bveq (recv-byte) (bv 1 8)))))))
-
-(define (retrieve slot pin)
-  (let ([invalid-slot (bvuge slot (bv 4 8))])
-    (hint case-split-invalid-slot)
-    (if invalid-slot
-        #f
-        (begin
-          (prepare (bv 4 8) slot)
-          (send-bytes (bitvector->bytes pin))
-          (wait-and-return
-           (if (bveq (recv-byte) (bv 3 8))
-               (apply concat (recv-bytes 16))
-               #f))))))
+(define (get)
+  (prepare (bv 2 8))
+  (wait-and-return (apply concat (reverse (recv-bytes 4)))))
