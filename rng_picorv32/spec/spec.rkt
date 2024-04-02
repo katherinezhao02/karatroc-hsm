@@ -6,7 +6,7 @@
 (get-random)
 #:leak #f
 #:random #t
-#:max-trng-words 4
+#:max-trng-words 6
 
 ;; stateless
 (define (new-symbolic-state)

@@ -186,13 +186,16 @@
 (define (step-to-start-of-main!)
   (concretize!
         (lens 'circuit (list 'wrapper.soc.rom.rom
-                             'wrapper.pwrmgr_state)))
+                             'wrapper.pwrmgr_state
+                             'wrapper.soc.trngio.state
+                             'wrapper.soc.trngio.ready
+                             'wrapper.soc.trngio.trng_out)))
 
   ;; we want to get rid of the predicate, to simplify subsumption checks
   ;; so we make use of replace and overapproximate-predicate
   ;;
   ;; compute spec state based on circuit state
-  (replace! (lens 'emulator 'oracle) (AbsF (lens-view (lens 'term 'circuit) (current))))
+  ; (replace! (lens 'emulator 'oracle) (AbsF (lens-view (lens 'term 'circuit) (current))))
   (overapproximate-predicate! #t)
 
   (overapproximate!
@@ -250,28 +253,31 @@
 (step-until! (branch-at (bv #x1a4 32)) #t)
 (cases*! (list (bveq (bvand (bv #xff 32) cmd) (bv 1 32))))
 (concretize-branch!)
-;; XXX add case
-(step-past-uart-read!)
-(step-past-uart-read!)
-(step-past-uart-read!)
-(step-past-uart-read!)
 (step-past-uart-write!)
-(step-until! poweroff)
-(subsumed! 0)
+
+
+;; XXX add case
+; (step-past-uart-read!)
+; (step-past-uart-read!)
+; (step-past-uart-read!)
+; (step-past-uart-read!)
+; (step-past-uart-write!)
+; (step-until! poweroff)
+; (subsumed! 0)
 
 ;; get cmd?
-(concretize-branch!)
-(step-until! (branch-at (bv #x1ac 32)) #t)
-(cases*! (list (bveq (bvand (bv #xff 32) cmd) (bv 2 32))))
-(concretize-branch!)
-(step-past-uart-write!)
-(step-past-uart-write!)
-(step-past-uart-write!)
-(step-past-uart-write!)
-(step-until! poweroff)
-(subsumed! 0)
+; (concretize-branch!)
+; (step-until! (branch-at (bv #x1ac 32)) #t)
+; (cases*! (list (bveq (bvand (bv #xff 32) cmd) (bv 2 32))))
+; (concretize-branch!)
+; (step-past-uart-write!)
+; (step-past-uart-write!)
+; (step-past-uart-write!)
+; (step-past-uart-write!)
+; (step-until! poweroff)
+; (subsumed! 0)
 
 ;; invalid
-(concretize-branch!)
-(step-until! poweroff)
-(subsumed! 0)
+; (concretize-branch!)
+; (step-until! poweroff)
+; (subsumed! 0)

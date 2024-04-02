@@ -5,9 +5,9 @@
 #:driver "../spec/driver.rkt"
 #:R R
 #:hints hints
-;; #:only 'add
-;; #:without-crashes #t
-;; #:without-yield #t
+#:only 'get-random
+#:without-crashes #t
+#:without-yield #t
 #:verbose #t
 
 (require
@@ -23,7 +23,7 @@
 
 (define (hints method c1 f1 f-out f2)
   (match method
-    [`(get)
+    [`(get-random)
      (extend-hintdb
       common-hintdb
       [maybe-merge-after-recv (maybe-merge-after-recv #x1a0)])]
@@ -39,6 +39,9 @@
    #;(when (and (equal? (get-field ckt 'wrapper.soc.cpu.reg_pc) (bv instr-addr 32)) (equal? (get-field ckt 'wrapper.soc.cpu.cpu_state) (bv #x20 8)))
      (eprintf "pc: ~v state: ~v, merging~n" (get-field ckt 'wrapper.soc.cpu.reg_pc) (get-field ckt 'wrapper.soc.cpu.cpu_state))
      (merge!))))
+
+(define hint-concretize
+  (concretize! (lens 'circuit (field-filter/or "wrapper.soc.trngio.state" "wrapper.soc.trngio.ready" "wrapper.soc.trngio.trng_out")) #:use-pc #t))
 
 (define common-hintdb
   (make-hintdb
@@ -76,4 +79,12 @@
                           (get-field s 'wrapper.soc.uart.simpleuart.recv_buf_valid))))]
    [debug (tactic
            (define ckt (lens-view (lens 'interpreter 'globals 'circuit) (get-state)))
-           (eprintf "pc: ~v~n" (get-field ckt 'wrapper.soc.cpu.reg_pc)))]))
+           (eprintf "pc: ~v~n" (get-field ckt 'wrapper.soc.cpu.reg_pc))
+           (eprintf "trng state: ~v~n" (get-field ckt 'wrapper.soc.trngio.state))
+           (eprintf "trng ready: ~v~n" (get-field ckt 'wrapper.soc.trngio.ready))
+           (eprintf "trng out: ~v~n" (get-field ckt 'wrapper.soc.trngio.trng_out))
+           (eprintf "trng word: ~v~n" (get-field ckt 'trng_word))
+           )]
+   [trng-fp (fixpoint 0 #t 0 #f #f)]
+   [trng-concretize hint-concretize]
+   ))

@@ -25,11 +25,8 @@ void uart_write(struct uart *uart, uint8_t data);
 
 void poweroff();
 
-#define TRNGW ((volatile uint32_t *) 0x40006000)
-#define TRNGR ((volatile uint32_t *) 0x40006004)
+#define TRNGADDR ((volatile uint32_t *) 0x40006000)
 
 uint32_t trng_read();
-
-void trng_write(uint8_t data);
 
 #endif // DRIVERS_H

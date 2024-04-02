@@ -25,9 +25,7 @@ void main() {
 
 void do_get_random() {
   uint32_t n = 0;
-  trng_write(1);
   n |= ((uint32_t) trng_read()) << 4;
-  trng_write(1);
   n |= ((uint32_t) trng_read());
   uart_write(UART1, n);
 }

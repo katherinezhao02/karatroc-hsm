@@ -27,9 +27,5 @@ void poweroff() {
 }
 
 uint32_t trng_read() {
-    return *TRNGR;
-}
-
-void trng_write(uint8_t data) {
-    *TRNGW = data;
+    return *TRNGADDR;
 }

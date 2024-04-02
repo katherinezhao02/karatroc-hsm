@@ -14,9 +14,12 @@
   (vector-ref fram 0))
 
 (define (R f ci)
-  (and
-   (equal? (AbsF ci) f)
-   (I ci)))
+  (I ci))
 
 (define (I ci)
-  (bveq (get-field ci 'wrapper.pwrmgr_state) (bv #b01 2)))
+  (and
+    (bveq (get-field ci 'wrapper.pwrmgr_state) (bv #b01 2))
+    (bveq (get-field ci 'wrapper.soc.trngio.state) (bv #b00 2))
+    (bveq (get-field ci 'wrapper.soc.trngio.ready) (bv #b0 1))
+    (bveq (get-field ci 'wrapper.soc.trngio.trng_out) (bv #b0 1))
+    ))
