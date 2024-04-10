@@ -24,7 +24,14 @@
   (define cs (lens-view (lens 'circuit 'wrapper.soc.cpu.cpu_state) t))
   (define s (lens-view (lens 'emulator 'auxiliary 'circuit 'wrapper.soc.cpu.reg_pc) t))
   (define ss (lens-view (lens 'emulator 'auxiliary 'circuit 'wrapper.soc.cpu.cpu_state) t))
-  (printf "ckt: ~v ~v emu: ~v ~v\n" c cs s ss))
+  (define ct (lens-view (lens 'circuit 'wrapper.soc.trngio.trng_out) t))
+  (define st (lens-view (lens 'emulator 'auxiliary 'circuit 'wrapper.soc.trngio.trng_out) t))
+  (define ctr (lens-view (lens 'circuit 'wrapper.soc.trngio.ready) t))
+  (define str (lens-view (lens 'emulator 'auxiliary 'circuit 'wrapper.soc.trngio.ready) t))
+  (define cts (lens-view (lens 'circuit 'wrapper.soc.trngio.state) t))
+  (define sts (lens-view (lens 'emulator 'auxiliary 'circuit 'wrapper.soc.trngio.state) t))
+  (printf "ckt: ~v ~v emu: ~v ~v\n" c cs s ss)
+  (printf "ckt trng: ~v ~v ~v emu trng: ~v ~v ~v\n" ct ctr cts st str sts))
 
 (define (step-n! n)
   (unless (zero? n)
@@ -38,6 +45,9 @@
 
 (define ((pc-is pc) term)
   (racket/equal? (lens-view (lens 'circuit 'wrapper.soc.cpu.reg_pc) term) pc))
+
+(define ((trng-is val) term)
+  (racket/equal? (lens-view (lens 'circuit 'wrapper.soc.trngio.trng_out) term) val))
 
 (define ((state-is state) term)
   (racket/equal? (lens-view (lens 'circuit 'wrapper.soc.cpu.cpu_state) term) state))
@@ -85,6 +95,14 @@
                           'wrapper.soc.cpu.mem_do_rinst))
   (concretize! (lens (list (lens 'circuit branch-related)
                                    (lens 'emulator 'auxiliary 'circuit branch-related)))))
+
+(define (concretize-trng!)
+  (define trng-related (list
+                          'wrapper.soc.trngio.trng_out
+                          'wrapper.soc.trngio.ready
+                          'wrapper.soc.trngio.state))
+  (concretize! (lens (list (lens 'circuit trng-related)
+                                   (lens 'emulator 'auxiliary 'circuit trng-related)))))
 
 ;; proceed to the UART read; returns var
 (define (step-past-uart-read! [read-name #f])
@@ -190,6 +208,8 @@
                              'wrapper.soc.trngio.state
                              'wrapper.soc.trngio.ready
                              'wrapper.soc.trngio.trng_out)))
+  ; (printf "circuit ~v ~n" (lens-view (lens 'term 'circuit 'wrapper.soc.trngio.trng_out) (current)))
+  ; (printf "emulator ~v ~n" (lens-view (lens 'term 'emulator 'auxiliary 'circuit 'wrapper.soc.trngio.trng_out) (current)))
 
   ;; we want to get rid of the predicate, to simplify subsumption checks
   ;; so we make use of replace and overapproximate-predicate
@@ -201,7 +221,8 @@
   (overapproximate!
         (lens 'emulator 'auxiliary 'circuit
               (list (field-filter/not (field-filter/or 'wrapper.pwrmgr_state
-                                                       'wrapper.soc.cpu.cpuregs 'wrapper.soc.ram.ram 'wrapper.soc.fram.fram
+                                                       'wrapper.soc.cpu.cpuregs 'wrapper.soc.ram.ram 'wrapper.soc.fram.fram 
+                                                       'wrapper.soc.trngio.trng_out 'wrapper.soc.trngio.state 'wrapper.soc.trngio.ready
                                                        'wrapper.soc.rom.rom))
                     ;; note: we purposefully don't overapproximate the FRAM: we make sure it's zeroed out at the start and end
                     (lens 'wrapper.soc.ram.ram vector-all-elements-lens)
@@ -244,40 +265,65 @@
   ;; proceed to uart init
   (step-until! (pc-is (bv #x0000006c 32)) #f))
 
+(define (step-past-trng-read!)
+  (step-until! (trng-is (bv 1 1)) #f)
+  (replace! (lens 'emulator 'auxiliary 'circuit 'wrapper.soc.uart.simpleuart.recv_buf_valid) (lens-view (lens 'term 'circuit 'wrapper.soc.uart.simpleuart.recv_buf_valid) (current)))
+  ;; now, we overapproximate some stuff, so we can loop back later
+  (overapproximate!
+        (lens (list (lens 'circuit (list 
+                                        'wrapper.soc.cpu.alu_out_q
+                                         'wrapper.soc.uart.simpleuart.send_divcnt
+                                         'wrapper.soc.cpu.count_cycle
+                                         ))
+                    (lens 'emulator 'auxiliary 'circuit (list 
+                                                              'wrapper.soc.cpu.alu_out_q
+                                                               'wrapper.soc.uart.simpleuart.send_divcnt
+                                                               'wrapper.soc.cpu.count_cycle
+                                                               )))))
+  (sync-overapprox-uart-recv!)
+  (define prev-index (length (visited)))
+  ; (define c1 (lens-view (lens 'term 'circuit) (current)))
+  ; (define em1 (lens-view (lens 'term 'emulator 'auxiliary 'circuit) (current)))
+  ;(printf "circuit2 ~v ~n" (lens-view (lens 'term 'circuit) (current)))
+  ;(printf "pred ~v ~n" (lens-view (lens 'predicate) (current)))
+  ;(printf "emulator auxiliary ~v ~n" (lens-view (lens 'term 'emulator 'auxiliary 'circuit) (current)))
+  (step!)
+  (define val (lens-view (lens 'term 'circuit 'trng_valid) (current)))
+  ;(printf "val ~v ~n" val)
+  (cases! (list (! val) val))
+  (concretize-branch!)
+  (concretize-trng!)
+  ; (define c2 (lens-view (lens 'term 'circuit) (current)))
+  ; (define em2 (lens-view (lens 'term 'emulator 'auxiliary 'circuit) (current)))
+  ; (printf "diff circuit~v ~n" (show-diff c1 c2))
+  ; (printf "diff em~v ~n" (show-diff em1 em2))
+  (sync-overapprox-uart-recv!)
+  ;(printf "circuit2 ~v ~n" (lens-view (lens 'term 'circuit) (current)))
+  ;(printf "pred ~v ~n" (lens-view (lens 'predicate) (current)))
+  ;(printf "emulator auxiliary ~v ~n" (lens-view (lens 'term 'emulator 'auxiliary 'circuit) (current)))
+  (subsumed! prev-index)
+  (concretize-branch!)
+  (concretize-trng!))
+
+(define init_trng (lens-view (lens 'term 'emulator 'oracle 'trng) (current)))
 (step-to-start-of-main!)
 
 (define cmd (step-past-uart-read! 'cmd))
-#;(define slot (step-past-uart-read! 'slot))
 
-;; add cmd?
-(step-until! (branch-at (bv #x1a4 32)) #t)
+(step-until! (branch-at (bv #x118 32)) #t) ; at switch
 (cases*! (list (bveq (bvand (bv #xff 32) cmd) (bv 1 32))))
 (concretize-branch!)
+
+; (printf "circuit ~v ~n" (lens-view (lens 'term 'circuit) (current)))
+(step-past-trng-read!)
+(replace-circuit-trng! (cdr init_trng))
+(step-past-trng-read!)
+(replace-circuit-trng! (cdr (cdr init_trng)))
 (step-past-uart-write!)
+(step-until! poweroff)
+(subsumed! 0)
 
-
-;; XXX add case
-; (step-past-uart-read!)
-; (step-past-uart-read!)
-; (step-past-uart-read!)
-; (step-past-uart-read!)
-; (step-past-uart-write!)
-; (step-until! poweroff)
-; (subsumed! 0)
-
-;; get cmd?
-; (concretize-branch!)
-; (step-until! (branch-at (bv #x1ac 32)) #t)
-; (cases*! (list (bveq (bvand (bv #xff 32) cmd) (bv 2 32))))
-; (concretize-branch!)
-; (step-past-uart-write!)
-; (step-past-uart-write!)
-; (step-past-uart-write!)
-; (step-past-uart-write!)
-; (step-until! poweroff)
-; (subsumed! 0)
-
-;; invalid
-; (concretize-branch!)
-; (step-until! poweroff)
-; (subsumed! 0)
+; invalid
+(concretize-branch!)
+(step-until! poweroff)
+(subsumed! 0)

@@ -5,7 +5,7 @@
 #:driver "../spec/driver.rkt"
 #:R R
 #:hints hints
-#:only 'get-random
+; #:only 'get-random
 #:without-crashes #t
 #:without-yield #t
 #:verbose #t
