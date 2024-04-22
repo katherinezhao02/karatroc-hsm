@@ -188,19 +188,26 @@
   (concretize!
    (lens 'circuit (list 'wrapper.soc.rom.rom
                         'wrapper.soc.sha256.k
-                        'wrapper.pwrmgr_state)))
+                        'wrapper.pwrmgr_state
+                        'wrapper.soc.trngio.state
+                        'wrapper.soc.trngio.ready
+                        'wrapper.soc.trngio.trng_out)))
 
   ;; we want to get rid of the predicate, to simplify subsumption checks
   ;; so we make use of replace and overapproximate-predicate
   ;;
   ;; compute spec state based on circuit state
-  (replace! (lens 'emulator 'oracle) (AbsF (lens-view (lens 'term 'circuit) (current))))
+  (printf "emulator oracle 1 ~v ~n" (lens-view (lens 'term 'emulator 'oracle) (current)))
+  (printf "absf ~v ~n" (AbsF (lens-view (lens 'term 'circuit) (current))))
+  (replace! (lens 'emulator 'oracle 'spec) (AbsF (lens-view (lens 'term 'circuit) (current))))
+  (printf "here ~n")
   (overapproximate-predicate! #t)
 
   (overapproximate!
    (lens 'emulator 'auxiliary 'circuit
          (list (field-filter/not (field-filter/or 'resetn 'wrapper.pwrmgr_state
                                                   'wrapper.soc.cpu.cpuregs 'wrapper.soc.ram.ram 'wrapper.soc.fram.fram
+                                                  'wrapper.soc.trngio.trng_out 'wrapper.soc.trngio.state 'wrapper.soc.trngio.ready
                                                   'wrapper.soc.rom.rom 'wrapper.soc.sha256.k 'wrapper.soc.sha256.w_mem))
                ;; note: we purposefully don't overapproximate the FRAM: we make sure it's zeroed out at the start and end
                (lens 'wrapper.soc.ram.ram vector-all-elements-lens)
@@ -248,11 +255,11 @@
 (step-to-start-of-main!)
 
 (define cmd (step-past-uart-read! 'cmd))
-(step-until! (branch-at (bv #x54c 32)) #t)
+(step-until! (branch-at (bv #x538 32)) #t)
 ;; at first branch in main, is it a set-secret command?
 (cases*! (list (not (equal? (bvand (bv #xff 32) cmd) (bv 1 32)))))
 (concretize-branch!)
-(step-until! (branch-at (bv #x554 32)) #t)
+(step-until! (branch-at (bv #x540 32)) #t)
 (cases*! (list (not (equal? (bvand (bv #xff 32) cmd) (bv 2 32))))) ;; get-hash or invalid?
 ;; invalid cmd
 (concretize-branch!)
@@ -268,9 +275,10 @@
           (range spec:MESSAGE-SIZE-BYTES))
 (step-until! (pc-is (bv #x4ac 32)))
 ;; do this before the case split, so this variable is shared between the branches
-(define secret (remember! (lens 'emulator 'oracle) 'secret))
+(define secret (remember! (lens 'emulator 'oracle 'spec) 'secret))
 ;; "inverse abstraction function", so we don't have to separately
 ;; prove both the active = 0 and active = 1 cases
+
 ;;
 ;; we have also very carefully written this in conjunction with AbsF so that
 ;; (R f ci) computes in Rosette to #t, rather than requiring a solver query
@@ -351,7 +359,7 @@
 (step-until!
  (lambda (term) (racket/equal? (lens-view (lens 'circuit 'wrapper.soc.sha256.state) term) (bv #b01 2))))
 (define c (lens-view (lens 'circuit) (set-term (current))))
-(define f (lens-view (lens 'emulator 'oracle) (set-term (current))))
+(define f (lens-view (lens 'emulator 'oracle 'spec) (set-term (current))))
 
 ;; initial inject
 (define block
@@ -473,6 +481,7 @@
 (match-abstract! (lens 'wrapper.soc.ram.ram 499) 'message7)
 (subsumed! ready-to-hash-index) ; this works even without the replaces, but it's probably faster with replace above
 
+#|
 ;; store case
 ;; begin store case proof
 (concretize-branch!)
@@ -496,3 +505,4 @@
 (step-until! poweroff)
 (subsumed! 0)
 ;; end store case proof
+|#

@@ -199,13 +199,15 @@ assign mem_ready = (rom_valid && rom_ready) ||
     (pwr_sel && pwr_ready) ||
     (uart_sel && uart_ready) ||
     (spi_sel && spi_ready) ||
-    (sha256_sel && sha256_ready);
+    (sha256_sel && sha256_ready) ||
+    (trngio_sel && trngio_ready);
 assign mem_rdata = (rom_valid && rom_ready) ? rom_rdata :
     (fram_valid && fram_ready) ? fram_rdata :
     (ram_valid && ram_ready) ? ram_rdata :
     (uart_sel) ? uart_rdata :
     (spi_sel) ? spi_rdata :
     (sha256_sel) ? sha256_rdata :
+    (trngio_sel) ? trngio_rdata :
     32'h 0000_0000;
 
 endmodule

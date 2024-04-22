@@ -6,7 +6,7 @@
          (only-in racket/base for/list in-range)
          (only-in racket/list range))
 
-(provide R I swap32
+(provide R I swap32 AbsF
          (struct-out imp-state) imp-init imp-step sha256-add impl-spec-lenses imp->sha256-state)
 
 (define (swap32 b)
@@ -19,27 +19,28 @@
 ;; we have written this very carefully, and in conjunction with the security proof,
 ;; to make it so that (R f ci) simplifies/computes in Rosette rather than requiring a solver query
 ;; in the security proof
-; (define (AbsF ci)
-;   (define fram (get-field ci 'wrapper.soc.fram.fram))
-;   (define active (vector-ref fram 0))
-;   (define active0 (bvzero? active))
-;   (concat
-;    (swap32 (if active0 (vector-ref fram 1) (vector-ref fram 6)))
-;    (swap32 (if active0 (vector-ref fram 2) (vector-ref fram 7)))
-;    (swap32 (if active0 (vector-ref fram 3) (vector-ref fram 8)))
-;    (swap32 (if active0 (vector-ref fram 4) (vector-ref fram 9)))
-;    (swap32 (if active0 (vector-ref fram 5) (vector-ref fram 10)))))
+(define (AbsF ci)
+  (define fram (get-field ci 'wrapper.soc.fram.fram))
+  (define active (vector-ref fram 0))
+  (define active0 (bvzero? active))
+  (concat
+   (swap32 (if active0 (vector-ref fram 1) (vector-ref fram 6)))
+   (swap32 (if active0 (vector-ref fram 2) (vector-ref fram 7)))
+   (swap32 (if active0 (vector-ref fram 3) (vector-ref fram 8)))
+   (swap32 (if active0 (vector-ref fram 4) (vector-ref fram 9)))
+   (swap32 (if active0 (vector-ref fram 5) (vector-ref fram 10)))))
 
 (define (R f ci)
-  (I ci))
+  (&& (equal? (AbsF ci) f)
+      (I ci)))
 
 (define (I ci)
-  ; (define fram (get-field ci 'wrapper.soc.fram.fram))
+  (define fram (get-field ci 'wrapper.soc.fram.fram))
   (and
    (bveq (get-field ci 'wrapper.pwrmgr_state) (bv #b01 2))
    (bveq (get-field ci 'wrapper.soc.trngio.state) (bv #b00 2))
    (bveq (get-field ci 'wrapper.soc.trngio.ready) (bv #b0 1))
-   (bveq (get-field ci 'wrapper.soc.trngio.trng_out) (bv #b0 1)))
+   (bveq (get-field ci 'wrapper.soc.trngio.trng_out) (bv #b0 1))))
 
 ;; for proof purposes
 

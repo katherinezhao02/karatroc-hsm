@@ -42,19 +42,13 @@
         (let ([fram (get-field c 'wrapper.soc.fram.fram)])
           ;; emulator has fram initially hard-coded to 0, so active is 0, so secret is written into 1
           (displayln "store triggered")
-          (spec:set-secret
-           (concat
-            (swap32 (vector-ref fram 6))
-            (swap32 (vector-ref fram 7))
-            (swap32 (vector-ref fram 8))
-            (swap32 (vector-ref fram 9))
-            (swap32 (vector-ref fram 10)))))
+          (spec:set-secret))
         (void)))
   ;; hash, doesn't matter exactly where we do this, as long as it's after op and before uart writes
   (let ([c (state-circuit (get))])
     (if (and
          (equal? (get-field c 'wrapper.pwrmgr_state) (bv #b10 2))
-         (equal? (get-field c 'wrapper.soc.cpu.reg_pc) (bv #x4ec 32)) ; right after return from sha256_digest
+         (equal? (get-field c 'wrapper.soc.cpu.reg_pc) (bv #x4e8 32)) ; right after return from sha256_digest
          (equal? (get-field c 'wrapper.soc.cpu.cpu_state) (bv #x20 8)))
         (let ([ram (get-field c 'wrapper.soc.ram.ram)])
           ;; compute hash

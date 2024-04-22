@@ -3,10 +3,11 @@
 #:init s0
 #:symbolic-constructor new-symbolic-state
 #:methods
-; (set-secret [secret (bitvector SECRET-SIZE)])
+(set-secret)
 (get-hash [msg (bitvector MESSAGE-SIZE)])
 #:random #t
 #:max-trng-words 21
+#:trng-word-length 8
 
 (require rosutil
          (only-in "spec-sha256.rkt" sha256))
@@ -17,7 +18,7 @@
  MESSAGE-SIZE
  MESSAGE-SIZE-BYTES
  new-symbolic-state
- ; set-secret
+ set-secret
  get-hash
  s0)
 
@@ -26,13 +27,8 @@
 (define MESSAGE-SIZE-BYTES 32)
 (define MESSAGE-SIZE (* 8 MESSAGE-SIZE-BYTES))
 
-; (define (new-symbolic-state)
-;   (fresh-symbolic 'secret (bitvector SECRET-SIZE)))
 (define (new-symbolic-state)
-  (void))
-
-; (define ((set-secret secret) s)
-;   (result #t secret))
+  (fresh-symbolic 'secret (bitvector SECRET-SIZE)))
 
 (define (make-word t n) 
   (if (equal? n 1)
@@ -46,13 +42,17 @@
     t
     (update-trng (cdr t) (- n 1))))
 
-(define ((get-hash msg) s)
+(define ((set-secret) s)
   (define t (rstate-trng s))
   (define secr (make-word t SECRET-SIZE-BYTES))
   (define new-t (update-trng t SECRET-SIZE-BYTES))
-  (result (sha256 (concat secr msg)) (rstate (rstate-spec s) new-t)))
+  (result #t (rstate secr new-t)))
 
-(define s0 (void))
+(define ((get-hash msg) s)
+  (define secr (rstate-spec s))
+  (result (sha256 (concat secr msg)) s))
+
+(define s0 (bv 0 SECRET-SIZE))
 
 ; (module+ test
 ;   (require rackunit)
