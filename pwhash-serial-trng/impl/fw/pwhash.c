@@ -63,7 +63,7 @@ void do_set_secret() {
     for (int i=0; i<SECRET_SIZE; i++) {
         uint8_t secret_part = 0;
         for (int j=0; j<8; j++) {
-            secret_part = secret_part << 1 + trng_read();
+            secret_part = (secret_part << 1) + trng_read();
         }
         secret[i]=secret_part;
     }

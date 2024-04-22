@@ -6,7 +6,7 @@
 (set-secret)
 (get-hash [msg (bitvector MESSAGE-SIZE)])
 #:random #t
-#:max-trng-words 161
+#:max-trng-bits 161
 
 (require rosutil
          (only-in "spec-sha256.rkt" sha256))
