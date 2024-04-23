@@ -48,7 +48,8 @@
   (result #t (rstate secr new-t)))
 
 (define ((get-hash msg) s)
-  (result (sha256 (concat s msg)) s))
+  (define secr (rstate-spec s))
+  (result (sha256 (concat secr msg)) s))
 
 (define s0 (bv 0 SECRET-SIZE))
 

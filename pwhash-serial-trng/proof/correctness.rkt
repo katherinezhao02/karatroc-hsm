@@ -5,7 +5,7 @@
 #:driver "../spec/driver.rkt"
 #:R R
 #:hints hints
-;; #:only 'get-hash
+; #:only 'get-hash
 #:without-yield #t
 #:without-crashes #t
 #:verbose #t

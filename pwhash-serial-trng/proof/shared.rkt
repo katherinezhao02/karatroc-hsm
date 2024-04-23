@@ -31,7 +31,6 @@
    (swap32 (if active0 (vector-ref fram 5) (vector-ref fram 10)))))
 
 (define (R f ci)
-  (printf "AbsF ~v ~n" (AbsF ci))
   (&& (equal? (AbsF ci) f)
       (I ci)))
 
