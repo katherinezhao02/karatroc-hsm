@@ -21,7 +21,19 @@ assign trngio_sel = reg_read_sel;
 
 // reg [1:0] state; 
 // reg trng_bit_reg;
-// reg trng_out; 
+reg trng_out; 
+
+always @(posedge clk) begin
+    if (!resetn) begin
+        trng_out <= 0;
+    end else begin
+        if (reg_read_sel) begin
+            trng_out <= 1;
+        end else begin
+            trng_out <= 0;
+        end
+    end
+end
 
 // always @(posedge clk) begin
 //     if (!resetn) begin
@@ -53,6 +65,6 @@ assign trngio_sel = reg_read_sel;
 // end 
 assign trngio_ready = 1;
 assign trngio_rdata = {(31)'h0, (reg_read_sel) ? trng_bit : 0};
-assign trng_req = reg_read_sel;
+assign trng_req = trng_out;
 
 endmodule

@@ -31,13 +31,15 @@
    (swap32 (if active0 (vector-ref fram 5) (vector-ref fram 10)))))
 
 (define (R f ci)
+  (printf "AbsF ~v ~n" (AbsF ci))
   (&& (equal? (AbsF ci) f)
       (I ci)))
 
 (define (I ci)
   (define fram (get-field ci 'wrapper.soc.fram.fram))
   (and
-   (bveq (get-field ci 'wrapper.pwrmgr_state) (bv #b01 2))))
+   (bveq (get-field ci 'wrapper.pwrmgr_state) (bv #b01 2))
+   (bveq (get-field ci 'wrapper.soc.trngio.trng_out) (bv #b0 1))))
 
 ;; for proof purposes
 
