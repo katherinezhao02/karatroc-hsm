@@ -1,7 +1,8 @@
 `timescale 1 ns / 1 ps
 
 module trngio #(
-    parameter [31:0] ADDR = 32'hffff_ffff
+    parameter [31:0] ADDR = 32'hffff_ffff,
+    parameter WIDTH = 8
 ) (
     input clk,
     input resetn,
@@ -20,7 +21,7 @@ wire reg_read_sel = mem_valid && (mem_addr == ADDR);
 assign trngio_sel = reg_read_sel;
 
 reg state; 
-reg [7:0] trng_word_reg;
+reg [WIDTH-1:0] trng_word_reg;
 reg ready;
 reg trng_out; 
 reg [3:0] cur_bit_ind;
@@ -69,7 +70,7 @@ always @(posedge clk) begin
     end 
 end 
 assign trngio_ready = ready;
-assign trngio_rdata = {(24)'h0, trng_word_reg};
+assign trngio_rdata = {(32-WIDTH)'h0, trng_word_reg};
 assign trng_req = trng_out;
 
 endmodule
