@@ -61,11 +61,7 @@ uint8_t *get_inactive() {
 void do_set_secret() {
     uint8_t secret[SECRET_SIZE];
     for (int i=0; i<SECRET_SIZE; i++) {
-        uint8_t secret_part = 0;
-        for (int j=0; j<8; j++) {
-            secret_part = (secret_part << 1) + trng_read();
-        }
-        secret[i]=secret_part;
+        secret[i]=trng_read();
     }
     // write into inactive region, then make active
     uint8_t *dest = get_inactive();
