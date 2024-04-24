@@ -60,13 +60,19 @@ always @(posedge clk) begin
             end
             if (cur_bit_ind>=WIDTH-1) begin
                 ready<=1;
-                state <=0;
+                state <=2;
                 trng_out<=1;
             end else begin 
                 trng_out<=1;
                 ready <=0;
             end
-        end 
+        end else if (state == 2) begin
+            ready <= 0;
+            trng_word_reg <= 0;
+            trng_out <= 0;
+            state <= 0;
+            cur_bit_ind <= 0;
+        end
     end 
 end 
 assign trngio_ready = ready;

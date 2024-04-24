@@ -5,7 +5,7 @@
 #:driver "../spec/driver.rkt"
 #:R R
 #:hints hints
-; #:only 'get-hash
+#:only 'set-secret
 #:without-yield #t
 #:without-crashes #t
 #:verbose #t
@@ -115,6 +115,9 @@
           (overapproximate-pc! (R f1 c1))
           (merge!)))])]))
 
+(define hint-concretize
+  (concretize! (lens 'circuit (field-filter/or "wrapper.soc.trngio.state" "wrapper.soc.trngio.ready" "wrapper.soc.trngio.trng_out")) #:use-pc #t))
+
 (define common-hintdb
   (make-hintdb
    [concretize-init (concretize! (lens 'circuit (field-filter/or "pwrmgr_state" "resetn" "rom" "sha256.k")) #:use-pc #t)]
@@ -159,7 +162,9 @@
                           (get-field s 'wrapper.soc.uart.simpleuart.recv_buf_valid))))]
    [debug (tactic
            (define ckt (lens-view (lens 'interpreter 'globals 'circuit) (get-state)))
-           (eprintf "pc: ~v~n" (get-field ckt 'wrapper.soc.cpu.reg_pc)))]))
+           (eprintf "pc: ~v~n" (get-field ckt 'wrapper.soc.cpu.reg_pc))
+           (eprintf "trng: ~v~n" (get-field ckt 'wrapper.soc.trngio.trng_out)))]
+   [trng-concretize hint-concretize]))
 
 (define (split-branchless pc reg)
   (tactic

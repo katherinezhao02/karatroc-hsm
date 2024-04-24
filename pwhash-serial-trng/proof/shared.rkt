@@ -38,7 +38,7 @@
   (define fram (get-field ci 'wrapper.soc.fram.fram))
   (and
    (bveq (get-field ci 'wrapper.pwrmgr_state) (bv #b01 2))
-   (bveq (get-field ci 'wrapper.soc.trngio.state) (bv #b0 1))
+   (bveq (get-field ci 'wrapper.soc.trngio.state) (bv #b00 2))
    (bveq (get-field ci 'wrapper.soc.trngio.ready) (bv #b0 1))
    (bveq (get-field ci 'wrapper.soc.trngio.trng_out) (bv #b0 1))
    (bveq (get-field ci 'wrapper.soc.trngio.cur_bit_ind) (bv #b0 4))))

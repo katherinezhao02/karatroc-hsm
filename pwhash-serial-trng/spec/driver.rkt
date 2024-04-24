@@ -143,12 +143,14 @@
   value)
 
 (define (set-secret)
+  (hint trng-concretize)
   (prepare (bv 1 8))
   (hint overapproximate-uart)
   (recv-byte)
   (wait-and-return #t))
 
 (define (get-hash msg)
+  (hint trng-concretize)
   (prepare (bv 2 8))
   (send-bytes (bitvector->bytes msg))
   (wait-and-return
