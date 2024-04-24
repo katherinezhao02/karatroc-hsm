@@ -20,7 +20,7 @@ module trngio #(
 wire reg_read_sel = mem_valid && (mem_addr == ADDR);
 assign trngio_sel = reg_read_sel;
 
-reg state; 
+reg [1:0] state; 
 reg [WIDTH-1:0] trng_word_reg;
 reg ready;
 reg trng_out; 
