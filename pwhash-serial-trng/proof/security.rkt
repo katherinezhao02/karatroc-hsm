@@ -196,7 +196,10 @@
    (lens 'circuit (list 'wrapper.soc.rom.rom
                         'wrapper.soc.sha256.k
                         'wrapper.pwrmgr_state
-                        'wrapper.soc.trngio.trng_out)))
+                        'wrapper.soc.trngio.trng_out
+                        'wrapper.soc.trngio.cur_bit_ind
+                        'wrapper.soc.trngio.ready
+                        'wrapper.soc.trngio.state)))
 
   ;; we want to get rid of the predicate, to simplify subsumption checks
   ;; so we make use of replace and overapproximate-predicate
@@ -209,7 +212,10 @@
    (lens 'emulator 'auxiliary 'circuit
          (list (field-filter/not (field-filter/or 'resetn 'wrapper.pwrmgr_state
                                                   'wrapper.soc.cpu.cpuregs 'wrapper.soc.ram.ram 'wrapper.soc.fram.fram
-                                                  'wrapper.soc.rom.rom 'wrapper.soc.sha256.k 'wrapper.soc.sha256.w_mem 'wrapper.soc.trngio.trng_out))
+                                                  'wrapper.soc.rom.rom 'wrapper.soc.sha256.k 'wrapper.soc.sha256.w_mem 'wrapper.soc.trngio.trng_out
+                        'wrapper.soc.trngio.cur_bit_ind
+                        'wrapper.soc.trngio.ready
+                        'wrapper.soc.trngio.state))
                ;; note: we purposefully don't overapproximate the FRAM: we make sure it's zeroed out at the start and end
                (lens 'wrapper.soc.ram.ram vector-all-elements-lens)
                (lens 'wrapper.soc.sha256.k vector-all-elements-lens)
@@ -242,6 +248,9 @@
 (define em1 (lens-view (lens 'term 'emulator 'auxiliary 'circuit) (current)))
 (printf "circuit: ~v ~n" c1)
 (printf "emulator: ~v ~n" em1)
+(printf "oracle ~v ~n" (lens-view (lens 'term 'emulator 'oracle) (current)))
+(define initstate (current))
+
 
   (step!)
   (overapproximate!
@@ -257,19 +266,20 @@
   (printf "HERE ~n ~n")
 
   ;; proceed to uart init
-  (step-until! (pc-is (bv #x0000006c 32)) #f))
+  (step-until! (pc-is (bv #x0000006c 32)) #f)
+  initstate
+  )
 
-(define c1 (lens-view (lens 'term 'circuit) (current)))
-  (define em1 (lens-view (lens 'term 'emulator 'auxiliary 'circuit) (current)))
 
-(step-to-start-of-main!)
+(define initstate (step-to-start-of-main!))
+(printf "oracle1 ~v ~n" (lens-view (lens 'term 'emulator 'oracle) initstate))
 
 (define cmd (step-past-uart-read! 'cmd))
-(step-until! (branch-at (bv #x584 32)) #t)
+(step-until! (branch-at (bv #x554 32)) #t)
 ;; at first branch in main, is it a set-secret command?
 (cases*! (list (not (equal? (bvand (bv #xff 32) cmd) (bv 1 32)))))
 (concretize-branch!)
-(step-until! (branch-at (bv #x58c 32)) #t)
+(step-until! (branch-at (bv #x55c 32)) #t)
 (cases*! (list (not (equal? (bvand (bv #xff 32) cmd) (bv 2 32))))) ;; get-hash or invalid?
 ;; invalid cmd
 (concretize-branch!)
@@ -277,15 +287,13 @@
 (subsumed! 0)
 
 ; ;; hash case
-(admit!)
-#|
 (concretize-branch!)
 (overapproximate-predicate! #t)
 (for-each (lambda (i)
             (printf "store, reading message[~a]~n" i)
             (step-past-uart-read! (format "message[~a]" i)))
           (range spec:MESSAGE-SIZE-BYTES))
-(step-until! (pc-is (bv #x4e4 32)))
+(step-until! (pc-is (bv #x4b4 32)))
 ;; do this before the case split, so this variable is shared between the branches
 (define secret (remember! (lens 'emulator 'oracle 'spec) 'secret))
 ;; "inverse abstraction function", so we don't have to separately
@@ -341,7 +349,7 @@
   (cases! (map (lambda (v) (equal? ax v)) (list (bv 0 32) (bv 1 32)))))
 ;; case active = x
 (concretize! (lens 'circuit 'wrapper.soc.cpu.cpuregs 12))
-(step-until! (pc-is (bv #x520 32)))
+(step-until! (pc-is (bv #x4f0 32)))
 ;; clean up stack contents
 (replace! (lens 'circuit 'wrapper.soc.ram.ram 487) (swap32 (extract 159 128 secret)))
 (replace! (lens 'circuit 'wrapper.soc.ram.ram 488) (swap32 (extract 127 96 secret)))
@@ -430,7 +438,7 @@
 (step!)
 (sync-overapprox-uart-recv!)
 ;; return from sha256_digest, where digest in RAM is populated
-(step-until! (pc-is (bv #x524 32)))
+(step-until! (pc-is (bv #x4f4 32)))
 (step-until! (state-is (bv #x08 8)))
 
 ;; okay, now we want to sync up the impl and spec
@@ -467,7 +475,7 @@
 
 ;; get hash, but case where active region is 1; proof via subsumption
 (concretize! (lens 'circuit 'wrapper.soc.cpu.cpuregs 12))
-(step-until! (pc-is (bv #x520 32)))
+(step-until! (pc-is (bv #x4f0 32)))
 ;; clean up stack contents, to match the thing we're going to be subsumed by (faster computation)
 (replace! (lens 'circuit 'wrapper.soc.ram.ram 487) (swap32 (extract 159 128 secret)))
 (replace! (lens 'circuit 'wrapper.soc.ram.ram 488) (swap32 (extract 127 96 secret)))
@@ -491,7 +499,7 @@
 (match-abstract! (lens 'wrapper.soc.ram.ram 498) 'message6)
 (match-abstract! (lens 'wrapper.soc.ram.ram 499) 'message7)
 (subsumed! ready-to-hash-index) ; this works even without the replaces, but it's probably faster with replace above
-|#
+
 
 ;; store case
 ;; begin store case proof
@@ -502,26 +510,53 @@
 ;         (printf "store, reading secret[~a]~n" i)
 ;         (step-past-uart-read! (format "secret[~a]" i)))
 ;     (range spec:SECRET-SIZE-BYTES))
-(step-until! (pc-is (bv #x434 32))) ; step just past the seqz
+; (step-until! (pc-is (bv #x3e8 32)))
+
+(step-until! (pc-is (bv #x40c 32))) ; step just past the seqz
 (let ([ax (lens-view (lens 'circuit 'wrapper.soc.cpu.cpuregs 13) (set-term (current)))])
   (cases! (map (lambda (v) (equal? ax v)) (list (bv 0 32) (bv 1 32)))))
 ;; case active = x
 (concretize! (lens 'circuit 'wrapper.soc.cpu.cpuregs 13))
 (step-past-uart-write!)
 (step-until! poweroff)
-(define c2 (lens-view (lens 'term 'circuit) (current)))
-(define em2 (lens-view (lens 'term 'emulator 'auxiliary 'circuit) (current)))
-(printf "circuit: ~v ~n" c2)
-(printf "emulator: ~v ~n" em2)
-;   (printf "diff circuit~v ~n" (show-diff c1 c2))
-;   (printf "diff em~v ~n" (show-diff em1 em2))
-(replace! (lens 'emulator 'oracle 'spec) (AbsF (lens-view (lens 'term 'circuit) (current))))
-(printf "replace done~n")
+(concretize! (lens 'circuit 'wrapper.soc.fram.fram 0))
+
+(remember! (lens 'circuit 'wrapper.soc.fram.fram 1) 'word1)
+(remember! (lens 'circuit 'wrapper.soc.fram.fram 2) 'word2)
+(remember! (lens 'circuit 'wrapper.soc.fram.fram 3) 'word3)
+(remember! (lens 'circuit 'wrapper.soc.fram.fram 4) 'word4)
+(remember! (lens 'circuit 'wrapper.soc.fram.fram 5) 'word5)
+(replace! (lens 'emulator 'oracle 'spec) (AbsF (lens-view (lens 'term 'circuit) (current))) #:use-equalities #t)
+(clear!)
+; (define c2 (lens-view (lens 'term 'circuit) (current)))
+; (define em2 (lens-view (lens 'term 'emulator 'auxiliary 'circuit) (current)))
+; (define c1 (lens-view (lens 'term 'circuit) initstate))
+; (define em1 (lens-view (lens 'term 'emulator 'auxiliary 'circuit) initstate))
+; (printf "circuit1: ~v ~n" c1)
+; ; (printf "emulator: ~v ~n" em1)
+; (printf "pred1 ~v ~n" (lens-view (lens 'predicate) initstate))
+; (printf "oracle1 ~v ~n" (lens-view (lens 'term 'emulator 'oracle) initstate))
+; (printf "circuit2: ~v ~n" c2)
+; ; (printf "emulator: ~v ~n" em2)
+; (printf "pred2 ~v ~n" (lens-view (lens 'predicate) (current)))
+; (printf "oracle2 ~v ~n" (lens-view (lens 'term 'emulator 'oracle) (current)))
+; ;   (printf "diff circuit~v ~n" (show-diff c1 c2))
+; ;   (printf "diff em~v ~n" (show-diff em1 em2))
+; ; (overapproximate-predicate! #t)
 (subsumed! 0)
 ;; case active = !x
-; (concretize! (lens 'circuit 'wrapper.soc.cpu.cpuregs 13))
-; (step-past-uart-write!)
-; (step-until! poweroff)
-; (subsumed! 0)
+(concretize! (lens 'circuit 'wrapper.soc.cpu.cpuregs 13))
+(step-past-uart-write!)
+(step-until! poweroff)
+(concretize! (lens 'circuit 'wrapper.soc.fram.fram 0))
+
+(remember! (lens 'circuit 'wrapper.soc.fram.fram 6) 'word1)
+(remember! (lens 'circuit 'wrapper.soc.fram.fram 7) 'word2)
+(remember! (lens 'circuit 'wrapper.soc.fram.fram 8) 'word3)
+(remember! (lens 'circuit 'wrapper.soc.fram.fram 9) 'word4)
+(remember! (lens 'circuit 'wrapper.soc.fram.fram 10) 'word5)
+(replace! (lens 'emulator 'oracle 'spec) (AbsF (lens-view (lens 'term 'circuit) (current))) #:use-equalities #t)
+(clear!)
+(subsumed! 0)
 ;; end store case proof
 

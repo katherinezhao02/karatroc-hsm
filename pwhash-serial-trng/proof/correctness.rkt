@@ -5,7 +5,7 @@
 #:driver "../spec/driver.rkt"
 #:R R
 #:hints hints
-#:only 'set-secret
+; #:only 'set-secret
 #:without-yield #t
 #:without-crashes #t
 #:verbose #t
