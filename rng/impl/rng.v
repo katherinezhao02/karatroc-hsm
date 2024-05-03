@@ -1,5 +1,5 @@
 module rng#(
-    parameter WIDTH = 2
+    parameter WIDTH = 8
 )(
 	input clk,
     input reset,
@@ -17,7 +17,6 @@ reg [WIDTH-1:0] cur_word;
 reg [5:0] cur_bit_ind;
 reg valid;
 reg want_next;
-// reg [WIDTH-1:0] output_word;
 reg reset_ind;
 always @(posedge clk) begin
     if (reset) begin
@@ -30,7 +29,6 @@ always @(posedge clk) begin
     else if (en) begin
     	if (cur_bit_ind <= WIDTH-1) begin
 	    	cur_word<=(cur_word<<1)+trng_bit;
-	    	// output_word<=(cur_word<<1)+trng_bit;
 	    	cur_bit_ind<=cur_bit_ind+1;
     	end
     	if (reset_ind) begin

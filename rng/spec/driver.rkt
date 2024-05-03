@@ -2,19 +2,18 @@
 
 #:idle [en #f]
 
+(define (tick-n n)
+  (if (zero? n)
+      (void)
+      (begin
+        (tick)
+        (tick-n (sub1 n)))))
+
 (define (get-random)
-  (out* 'en #t 'req #t) ; write hints to concretize
-  ; (hint debug)
+  (out* 'en #t 'req #t) 
   (hint concretize)
-  ; (hint debug)
-  (tick)
-  ; (printf "driver: ~v ~n" (in))
-  (tick)
-  ; (tick)
-  ; (tick)
-  ; (printf "driver: ~v ~n" (in))
+  (tick-n 8)
   (let ([r (output-random_word (in))])
     (tick)
-    ; (printf "driver: ~v ~n" (in))
     r)
   )
