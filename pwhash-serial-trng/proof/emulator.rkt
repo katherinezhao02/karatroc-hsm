@@ -1,6 +1,6 @@
 #lang knox/emulator
 
-(struct state (circuit))
+(struct state (num-trng circuit))
 
 (define (initial-circuit)
   (circuit-with-input
@@ -11,10 +11,10 @@
    (input* 'resetn #t 'cts #t 'rx #t)))
 
 (define (init)
-  (set! (state (initial-circuit))))
+  (set! (state 0 (initial-circuit))))
 
 (define (with-input i)
-  (set! (state (circuit-with-input (state-circuit (get)) i))))
+  (set! (state (state-num-trng (get)) (circuit-with-input (state-circuit (get)) i))))
 
 (define (get-output)
   (circuit-get-output (state-circuit (get))))
@@ -33,7 +33,8 @@
 
 (define (step)
   ;; store
-  (let ([c (state-circuit (get))])
+  (let ([c (state-circuit (get))]
+        [t (state-num-trng (get))])
     (if (and
          (equal? (get-field c 'wrapper.pwrmgr_state) (bv #b10 2))
          (equal? (get-field c 'wrapper.soc.cpu.reg_pc) (bv #x450 32))
@@ -42,10 +43,12 @@
         (let ([fram (get-field c 'wrapper.soc.fram.fram)])
           ;; emulator has fram initially hard-coded to 0, so active is 0, so secret is written into 1
           (displayln "store triggered")
-          (spec:set-secret))
+          (spec:set-secret)
+          (set! (state (- t 160) c)))
         (void)))
   ;; hash, doesn't matter exactly where we do this, as long as it's after op and before uart writes
-  (let ([c (state-circuit (get))])
+  (let ([c (state-circuit (get))]
+    [t (state-num-trng (get))])
     (if (and
          (equal? (get-field c 'wrapper.pwrmgr_state) (bv #b10 2))
          (equal? (get-field c 'wrapper.soc.cpu.reg_pc) (bv #x4f4 32)) ; right after return from sha256_digest
@@ -61,7 +64,7 @@
                                           (swap32 (vector-ref ram 498))
                                           (swap32 (vector-ref ram 499))))])
             ;; inject into emulated circuit
-            (set! (state (update-field c 'wrapper.soc.ram.ram
+            (set! (state t (update-field c 'wrapper.soc.ram.ram
                                        (vector-set* ram (list 513 (swap32 (extract 255 224 h))
                                                               514 (swap32 (extract 223 192 h))
                                                               515 (swap32 (extract 191 160 h))
@@ -72,11 +75,20 @@
                                                               520 (swap32 (extract 31 0 h)))))))))
         (void)))
   ;; zero out fram at poweroff
-  (let ([c (state-circuit (get))])
+  (let ([c (state-circuit (get))]
+    [t (state-num-trng (get))])
     (if (and
          (equal? (get-field c 'wrapper.pwrmgr_state) (bv #b10 2))
          (equal? (get-field c 'wrapper.soc.cpu.reg_pc) (bv #xac 32)))
-        (set! (state (update-field c 'wrapper.soc.fram.fram (get-field (circuit-zeroed) 'wrapper.soc.fram.fram))))
+        (set! (state t (update-field c 'wrapper.soc.fram.fram (get-field (circuit-zeroed) 'wrapper.soc.fram.fram))))
         (void)))
 
-  (set! (state (circuit-step (state-circuit (get))))))
+  (let ([c (circuit-step (state-circuit (get)))]
+        [t (state-num-trng (get))])
+    (if (equal? (get-field c 'wrapper.soc.trngio.trng_out) (bv 1 1))
+        (set! (state (+ t 1) c))
+        (set! (state t c)))))
+
+(define (shutdown)
+  (spec:leak (state-num-trng (get)))
+  )

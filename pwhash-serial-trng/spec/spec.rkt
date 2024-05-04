@@ -5,6 +5,7 @@
 #:methods
 (set-secret)
 (get-hash [msg (bitvector MESSAGE-SIZE)])
+#:leak leak
 #:random #t
 #:max-trng-bits 161
 
@@ -19,7 +20,8 @@
  new-symbolic-state
  set-secret
  get-hash
- s0)
+ s0
+ leak)
 
 (define SECRET-SIZE-BYTES 20)
 (define SECRET-SIZE (* 8 SECRET-SIZE-BYTES))
@@ -50,6 +52,11 @@
 (define ((get-hash msg) s)
   (define secr (rstate-spec s))
   (result (sha256 (concat secr msg)) s))
+
+(define ((leak n) s)
+  (define t (rstate-trng s))
+  (result #f (rstate (rstate-spec s) (update-trng t n)))
+  )
 
 (define s0 (bv 0 SECRET-SIZE))
 
