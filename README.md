@@ -1,4 +1,8 @@
-# Knox HSMs [![Build Status](https://github.com/anishathalye/knox-hsm/workflows/CI/badge.svg)](https://github.com/anishathalye/knox-hsm/actions?query=workflow%3ACI)
+# Karatroc HSMs
+
+This repository contains the two case studies for the "Verifying Hardware Security Modules With True Random Number Generators" thesis in the rng and pwhash-serial-trng folders. Preliminary tests for the valid/ready TRNG model are contained in the rng_picorv32, rng_valid, and pwhash-random folders. Other HSMs are from [Knox].
+
+<!-- # Knox HSMs [![Build Status](https://github.com/anishathalye/knox-hsm/workflows/CI/badge.svg)](https://github.com/anishathalye/knox-hsm/actions?query=workflow%3ACI)
 
 Circuits and hardware security modules (HSMs) formally verified with [Knox].
 
@@ -198,4 +202,5 @@ helpful:
 [iCEBreaker]: https://1bitsquared.com/products/icebreaker
 [Docker image]: https://hub.docker.com/repository/docker/anishathalye/knox
 [knox-hsm-artifacts]: https://github.com/anishathalye/knox-hsm/releases/download/v1.0.1/knox-hsm-artifacts.tar.gz
-[pySerial]: https://github.com/pyserial/pyserial
+[pySerial]: https://github.com/pyserial/pyserial -->
+[Knox]: https://github.com/anishathalye/knox-hsm
