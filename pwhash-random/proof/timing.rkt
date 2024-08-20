@@ -1,4 +1,4 @@
-#lang knox/correctness
+#lang knox/timing
 
 #:spec "../spec/spec.rkt"
 #:circuit "circuit.rkt"
@@ -6,7 +6,8 @@
 #:R R
 #:hints hints
 ; #:only 'set-secret
-; #:only 'get-hash
+#:onlyA 'set-secret
+#:onlyB 'set-secret
 #:without-yield #t
 #:without-crashes #t
 #:verbose #t
@@ -16,8 +17,8 @@
  "../spec/spec.rkt"
  "../spec/spec-sha256.rkt"
  racket/match
- knox/correctness/hint
- knox/correctness/checker
+ knox/timing/hint
+ knox/timing/checker
  rosette/safe
  yosys/meta
  knox/spec

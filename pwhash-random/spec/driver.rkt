@@ -164,13 +164,16 @@
 (define (set-secret)
   (hint trng-concretize)
   (prepare (bv 1 8))
+  (send-bytes (bitvector->bytes (bv 0 32)))
   (hint overapproximate-uart)
   (recv-byte)
+  (recv-bytes 32)
   (wait-and-return #t))
 
 (define (get-hash msg)
   (hint trng-concretize)
   (prepare (bv 2 8))
   (send-bytes (bitvector->bytes msg))
+  (recv-byte)
   (wait-and-return
    (apply concat (recv-bytes 32))))

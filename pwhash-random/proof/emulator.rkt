@@ -36,7 +36,7 @@
   (let ([c (state-circuit (get))])
     (if (and
          (equal? (get-field c 'wrapper.pwrmgr_state) (bv #b10 2))
-         (equal? (get-field c 'wrapper.soc.cpu.reg_pc) (bv #x448 32))
+         (equal? (get-field c 'wrapper.soc.cpu.reg_pc) (bv #x450 32))
          (equal? (get-field c 'wrapper.soc.cpu.cpu_state) (bv #x02 8))
          (equal? (get-field c 'wrapper.soc.cpu.mem_state) (bv #b10 2)))
         (let ([fram (get-field c 'wrapper.soc.fram.fram)])
@@ -48,7 +48,7 @@
   (let ([c (state-circuit (get))])
     (if (and
          (equal? (get-field c 'wrapper.pwrmgr_state) (bv #b10 2))
-         (equal? (get-field c 'wrapper.soc.cpu.reg_pc) (bv #x4e8 32)) ; right after return from sha256_digest
+         (equal? (get-field c 'wrapper.soc.cpu.reg_pc) (bv #x4f4 32)) ; right after return from sha256_digest
          (equal? (get-field c 'wrapper.soc.cpu.cpu_state) (bv #x20 8)))
         (let ([ram (get-field c 'wrapper.soc.ram.ram)])
           ;; compute hash
