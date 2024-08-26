@@ -6,7 +6,7 @@
 #:R R
 #:hints hints
 ; #:only 'set-secret
-; #:only 'get-hash
+#:only 'get-hash
 #:without-yield #t
 #:without-crashes #t
 #:verbose #t
@@ -36,8 +36,8 @@
       [post-tick done]
       [finalize done]
       [maybe-replace-and-merge-after-cases done] ; kind of annoying to figure out how to merge at this point, so don't bother
-      [maybe-split-branchless (split-branchless #x40c 13)]
-      [maybe-merge-after-recv (merge-at-pc #x3f8)])]
+      [maybe-split-branchless (split-branchless #x3e0 12)]
+      [maybe-merge-after-recv (merge-at-pc #x3c8)])]
     [`(get-hash ,msg)
      (define imp (imp-init (sha256-init) (pad-message (concat f1 msg))))
      (define (inject)
@@ -50,11 +50,12 @@
      (define (replace* lens-value #:use-pc [use-pc #f])
        (for ([lvp (in-list lens-value)])
          (replace! (car lvp) (cdr lvp) #:use-pc use-pc)))
+     (define num-step 0)
      (extend-hintdb
       common-hintdb
       [overapproximate-boot-pc (overapproximate-pc! (R f1 c1))]
-      [maybe-split-branchless (split-branchless #x4b4 12)]
-      [maybe-merge-after-recv (merge-at-pc #x4a0)]
+      [maybe-split-branchless (split-branchless #x460 14)]
+      [maybe-merge-after-recv (merge-at-pc #x448)]
       [initial-inject
        (let ([triggered (box #f)])
          (tactic
@@ -79,6 +80,8 @@
                  (or (equal? (get-field ckt 'wrapper.soc.sha256.state) (bv #b01 2))
                      (equal? (get-field ckt 'wrapper.soc.sha256.state) (bv #b10 2)))) ; we did something pre-tick
           ;; step the implementation
+          (set! num-step (add1 num-step))
+          (printf "num-step ~v,  state ~v ~n" num-step (get-field ckt 'wrapper.soc.sha256.state))
           (set! imp (imp-step imp))
           ;; inject into circuit
           (inject)
@@ -98,18 +101,20 @@
        (tactic
         (define st (get-state))
         (define ckt (lens-view (lens 'interpreter 'globals 'circuit) st))
-        (when (and (equal? (get-field ckt 'wrapper.soc.cpu.reg_pc) (bv #x4dc 32)) (equal? (get-field ckt 'wrapper.soc.cpu.cpu_state) (bv #x20 8)))
+        (when (and (equal? (get-field ckt 'wrapper.soc.cpu.reg_pc) (bv #x498 32)) (equal? (get-field ckt 'wrapper.soc.cpu.cpu_state) (bv #x20 8)))
           (eprintf "pc: ~v state: ~v, rewriting secret and merging~n" (get-field ckt 'wrapper.soc.cpu.reg_pc) (get-field ckt 'wrapper.soc.cpu.cpu_state))
           (define path (checker-state-pc st))
           (eprintf "path condition: ~v~n" path)
-          (replace* (list (cons (lens 'circuit 'wrapper.soc.ram.ram 487) (swap32 (extract 159 128 f1)))
-                          (cons (lens 'circuit 'wrapper.soc.ram.ram 488) (swap32 (extract 127 96 f1)))
-                          (cons (lens 'circuit 'wrapper.soc.ram.ram 489) (swap32 (extract 95 64 f1)))
-                          (cons (lens 'circuit 'wrapper.soc.ram.ram 490) (swap32 (extract 63 32 f1)))
-                          (cons (lens 'circuit 'wrapper.soc.ram.ram 491) (swap32 (extract 31 0 f1))))
+          (printf "circuit: ~v~n" ckt)
+          (replace* (list (cons (lens 'circuit 'wrapper.soc.ram.ram 491) (swap32 (extract 159 128 f1)))
+                          (cons (lens 'circuit 'wrapper.soc.ram.ram 492) (swap32 (extract 127 96 f1)))
+                          (cons (lens 'circuit 'wrapper.soc.ram.ram 493) (swap32 (extract 95 64 f1)))
+                          (cons (lens 'circuit 'wrapper.soc.ram.ram 494) (swap32 (extract 63 32 f1)))
+                          (cons (lens 'circuit 'wrapper.soc.ram.ram 495) (swap32 (extract 31 0 f1))))
                     #:use-pc #t)
-          (overapproximate! (lens 'circuit (list 'wrapper.soc.cpu.mem_wdata
-                                                 (lens 'wrapper.soc.cpu.cpuregs (list 12 14 15)))))
+          (printf "done replace ~n")
+          (overapproximate! (lens 'circuit (list 'wrapper.soc.cpu.mem_wdata 
+                                                 (lens 'wrapper.soc.cpu.cpuregs (list 12 15)))))
           ;; note: we overapproximate to (R f1 c1), not just #t, because otherwise we won't
           ;; be able to prove (R f1 c1); we haven't "overwritten" the secret in the fram,
           ;; we need to remember the relation (we can't just overwrite because we don't know which one it is)

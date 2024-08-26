@@ -17,7 +17,7 @@
       (begin
         (tick)
         (hint maybe-concretize-cpu)
-        (hint debug)
+        ; (hint debug)
         (tick-n (sub1 n)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -43,7 +43,7 @@
         (hint maybe-split-branchless)
         (hint maybe-replace-and-merge-after-cases)
         (hint maybe-wait-valid)
-        (hint debug)
+        ; (hint debug)
         (wait-until-start-bit))
       (void)))
 
@@ -85,7 +85,7 @@
       (begin
         (tick)
         (hint maybe-concretize-cpu)
-        (hint debug)
+        ; (hint debug)
         (wait-until-clear-to-send))
       (void)))
 
@@ -127,7 +127,7 @@
   (out* 'rx #t 'cts #f)
   (tick)
   (hint overapproximate-boot-pc)
-  (hint debug)
+  ; (hint debug)
   (out* 'cts #t)
   (tick-n 300)
   (hint overapproximate-boot)) ; do this after UART has been initialized
@@ -147,7 +147,7 @@
   (if (not (output-trng_req (in)))
       (begin
         (tick)
-        (hint debug)
+        ; (hint debug)
         (wait-trng-req))
       (void)))
 
@@ -164,9 +164,11 @@
 (define (set-secret)
   (hint trng-concretize)
   (prepare (bv 1 8))
-  (send-bytes (bitvector->bytes (bv 0 32)))
+  (send-bytes (bitvector->bytes (bv 0 256)))
   (hint overapproximate-uart)
   (recv-byte)
+  (hint overapproximate-uart)
+  (yield uart-fp)
   (recv-bytes 32)
   (wait-and-return #t))
 
@@ -174,6 +176,9 @@
   (hint trng-concretize)
   (prepare (bv 2 8))
   (send-bytes (bitvector->bytes msg))
+  (hint overapproximate-uart)
   (recv-byte)
+  (hint overapproximate-uart)
+  (yield uart-fp)
   (wait-and-return
    (apply concat (recv-bytes 32))))
